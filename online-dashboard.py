@@ -8,10 +8,10 @@ from sklearn import metrics
 from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
 
 # Load data
-df_2017_2018 = pd.read_csv(r"C:\Users\bjoer\Desktop\energy services\project 2\regression_data_2017-2018.csv")
-df_2019 = pd.read_csv(r"C:\Users\bjoer\Desktop\energy services\project 2\prepared_test_data_2019.csv")
-model_path_default = r"C:\Users\bjoer\Desktop\energy services\project 2\best_regression_model_113309-home.pkl"
-model_path_nn = r"C:\Users\bjoer\Desktop\energy services\project 2\neural_networks_model.pkl"
+df_2017_2018 = pd.read_csv("regression_data_2017-2018.csv")
+df_2019 = pd.read_csv("prepared_test_data_2019.csv")
+# model_path_default = "not used in online version"
+model_path_nn = "neural_networks_model.pkl"
 
 # Preprocess
 def preprocess_df(df):
@@ -33,7 +33,6 @@ app.title = "Energy Dashboard"
 
 weather_options = [{'label': f, 'value': f} for f in features[1:]]
 
-# Mapping of abbreviations to full names (for checklist)
 metric_labels = {
     "MAE": "Mean Absolute Error (MAE)",
     "MBE": "Mean Bias Error (MBE)",
@@ -130,7 +129,7 @@ def render_content_by_year(year):
                 dcc.Dropdown(
                     id='model-selection-dropdown',
                     options=[
-                        {'label': 'Random Forest Model', 'value': 'regression'},
+                        {'label': 'Random Forest Model (Not available online)', 'value': 'regression', 'disabled': True},
                         {'label': 'Neural Network Model', 'value': 'neural'}
                     ],
                     placeholder="Select a model...",
@@ -171,7 +170,6 @@ def update_graphs(year, weather_var):
             xaxis=dict(tickmode='array', tickvals=month_ticks, tickformat="%b"),
             yaxis_title="Power in kW",
             xaxis_title=year
-            
         )
         last_hour = html.Div(dcc.Graph(figure=last_hour_fig), style={'display': 'flex', 'justifyContent': 'center'})
 
@@ -224,16 +222,16 @@ def run_feature_selection(n_clicks, selected_features, method):
     prevent_initial_call=True
 )
 def run_model_prediction(n_clicks, model_choice):
-    if model_choice not in ['regression', 'neural']:
-        return html.Div("Please select a model.", style={'textAlign': 'center', 'color': 'red'}), html.Div()
+    if model_choice != 'neural':
+        return html.Div("Please select a valid model.", style={'textAlign': 'center', 'color': 'red'}), html.Div()
 
-    model = joblib.load(model_path_default if model_choice == 'regression' else model_path_nn)
+    model = joblib.load(model_path_nn)
 
     df_temp = df_2019.copy()
     df_temp["Model Prediction"] = model.predict(df_temp[features])
 
     fig = px.line(df_temp, x='Date', y=["Power in kW", "Model Prediction"],
-                  title=f"{'Regression' if model_choice == 'regression' else 'Neural Network'} Model vs Actual")
+                  title="Neural Network Model vs Actual")
     fig.update_layout(height=600, title_x=0.5, xaxis_title="Date", yaxis_title="Power in kW",
                       legend=dict(orientation="h", y=-0.3, x=0.5, xanchor='center'))
 
@@ -284,5 +282,8 @@ def display_selected_metrics(selected_keys):
         html.Table(table_rows, style={'width': '100%', 'borderCollapse': 'collapse', 'textAlign': 'center'})
     ], className='card-container', style={'width': '400px', 'margin': '20px auto', 'fontSize': '16px'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Required for Render
+server = app.server
+#if __name__ == '__main__':
+
+  #  app.run(debug=True)
